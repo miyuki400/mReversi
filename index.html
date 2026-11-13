@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#102f2b">
+  <title>Reversi Studio — 考えて強くなるオセロ</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar"><a class="brand" href="#" aria-label="Reversi Studio"><span class="brand-mark">R</span><span>REVERSI <b>STUDIO</b></span></a><span class="edition">PLAY · LEARN · REVIEW</span></header>
+    <section class="intro"><div><p class="eyebrow">YOUR NEXT MOVE, EXPLAINED</p><h1>一手ずつ、<em>強くなる。</em></h1><p class="lead">対局しながら、盤面の読み方と戦略を学べるリバーシ。</p></div><div class="intro-note"><span class="note-dot"></span>思考と解説を、ひとつの盤面に。</div></section>
+    <section class="setup panel" id="setupPanel"><div class="setup-group"><span class="label">あなたの色</span><div class="segmented" id="colorChoice"><button class="selected" data-color="1">先攻 <i>黒</i></button><button data-color="-1">後攻 <i>白</i></button></div></div><div class="setup-group"><label class="label" for="levelSelect">CPUの強さ</label><select id="levelSelect"><option value="beginner">初級 · 深さ2</option><option value="intermediate" selected>中級 · 深さ4</option><option value="advanced">上級 · 深さ5</option><option value="strong">最強 · 深さ7</option></select></div><button class="primary-button" id="startBtn">対局をはじめる <span>→</span></button></section>
+    <section class="game-layout" id="gameLayout" hidden>
+      <div class="board-column"><div class="game-heading"><div><p class="eyebrow">LIVE MATCH <span id="thinkingBadge" hidden> · THINKING</span></p><h2 id="gameTitle">あなたの番です</h2></div><button class="quiet-button" id="undoBtn" title="一手戻る">↶ <span>一手戻る</span></button></div>
+        <div class="score-strip"><div class="score-player"><span class="stone black"></span><div><small>あなた <b id="youColor">黒</b></small><strong id="youScore">2</strong></div></div><div class="turn-pill"><span id="turnDot" class="stone black"></span><span id="turnText">黒の手番</span><small id="moveCount">0手目</small></div><div class="score-player right"><div><small>CPU <b id="cpuColor">白</b></small><strong id="cpuScore">2</strong></div><span class="stone white"></span></div></div>
+        <div class="board-wrap"><div class="coord coord-top" aria-hidden="true"><span></span><span>a</span><span>b</span><span>c</span><span>d</span><span>e</span><span>f</span><span>g</span><span>h</span><span></span></div><div class="board-row"><div class="coord coord-side" id="rowLabels" aria-hidden="true"></div><div class="board" id="board" role="grid" aria-label="リバーシ盤面"></div><div class="coord coord-side" aria-hidden="true">1<br>2<br>3<br>4<br>5<br>6<br>7<br>8</div></div><div class="coord coord-top bottom" aria-hidden="true"><span></span><span>a</span><span>b</span><span>c</span><span>d</span><span>e</span><span>f</span><span>g</span><span>h</span><span></span></div></div>
+        <div class="board-footer"><span id="statusText">合法手の数値は、形勢ではなく候補手の比較値です。</span><button id="debugToggle" class="text-button">評価値エディタ <span>＋</span></button></div>
+        <div id="resultBanner" class="result-banner" hidden></div>
+      </div>
+      <aside class="study-column"><article class="study-card advice-card"><div class="card-kicker"><span class="spark">✳</span> COACH'S NOTE</div><h3>次の一手のヒント</h3><p id="adviceText">盤面を読み込んでいます…</p><div class="recommendation" id="recommendation"><span>おすすめ</span><b id="recommendMove">—</b><small id="recommendEval"></small></div></article>
+        <article class="study-card opening-card"><div class="card-kicker">OPENING GUIDE</div><h3 id="openingName">定石をチェック中</h3><p id="openingText">序盤の進行に応じて、定石とその狙いを紹介します。</p></article>
+        <article class="study-card chart-card"><div class="card-kicker">POSITION HISTORY</div><div class="chart-heading"><h3>形勢の推移</h3><span>あなた視点</span></div><canvas id="evalChart" aria-label="形勢推移グラフ"></canvas><div class="chart-legend"><span><i></i> 有利</span><span><i></i> 不利</span><span class="chart-range">−100 ← 評価 → +100</span></div><p id="reviewText" class="review-text" hidden></p></article>
+        <article class="study-card debug-card" id="debugPanel" hidden><div class="card-kicker">ENGINE LAB</div><div class="chart-heading"><h3>評価値テーブル</h3><button class="text-button" id="resetWeights">初期値に戻す</button></div><p class="debug-help">数値を変えるとCPUの着手評価に反映されます。</p><div id="weightGrid" class="weight-grid"></div></article>
+        <div class="aside-foot"><button class="secondary-button" id="restartBtn">最初からやり直す</button></div>
+      </aside>
+    </section>
+    <footer>REVERSI STUDIO <span>STRATEGY IS A PRACTICE.</span></footer>
+  </main>
+  <script src="joseki.js"></script><script src="script.js"></script>
+</body>
+</html>
+
