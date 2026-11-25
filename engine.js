@@ -205,8 +205,8 @@ function createReversiEngine() {
   function finalScore(d) { return d > 0 ? WIN + d * DISC : d < 0 ? -WIN + d * DISC : 0; }
   /*
    * 評価は「特徴量 × 重み」の和です。重みは残りマス数の段階（STAGES 段階）ごとに別々で、
-   * 自己対戦 1万6千局（約 82万局面）の最終石差を予測するよう、従来の手作りの重みを出発点にした
-   * リッジ回帰で求めました（評価 10 ≒ 石 1個ぶん）。
+   * 自己対戦の棋譜の最終石差を予測するよう学習で求めました（評価 10 ≒ 石 1個ぶん）。
+   * ここにあるのは weights.js（パターン評価）を読み込めなかったときに使う、特徴量だけの重みです。
    *  0 着手可能数の差        1 着手可能数の比     2 相手をパスに追い込む(+1)/自分がパス(-1)
    *  3 潜在的着手可能数の差  4 壁（外側に接する石）の少なさ  5 辺の確定石の差
    *  6 隅の数の差            7 隅が空いた C 打ち   8 すぐ隅を取られる C 打ち
@@ -216,18 +216,18 @@ function createReversiEngine() {
   const NF = 15, STAGES = 12;
   const stageOf = (e) => (e >= 60 ? 59 : e) / 5 | 0;
   const COEF = Float64Array.from([
-    19.02, 37.85, 17.88, -1.58, 12.24, 6.75, 29.45, -8.06, -22.65, -15, -0.21, 6.19, 6.4, 2.17, 0.25,   // 残り 0〜4 マス
-    21.15, 37.67, 17.19, -3.44, 12.51, 8.06, 29.89, -6.61, -23.43, -16.2, -0.17, 5.2, 5.68, 3.82, -2.29,   // 残り 5〜9 マス
-    20.26, 37.52, 17.54, -3.37, 12.97, 9.39, 30.12, -5.32, -23.48, -17.39, -0.1, 4.22, 5.04, 5.09, -5.24,   // 残り 10〜14 マス
-    17.77, 37.23, 17.67, -0.85, 12.37, 10.27, 29.64, -3.29, -23.19, -17.99, -0.03, 3.32, 4.15, 4.57, -7.84,   // 残り 15〜19 マス
-    15.6, 37.04, 17.83, 1.48, 10.4, 12.02, 29.22, -1.38, -22.6, -27.11, 0.03, 1.72, 4.26, 1.99, -9.19,   // 残り 20〜24 マス
-    15.21, 36.8, 17.96, 2.58, 8.16, 14.3, 29.02, -0.47, -21.97, -25.27, 0.16, -0.25, 0.16, 0.62, -9.42,   // 残り 25〜29 マス
-    15, 36.67, 18, 3.05, 7.81, 15.54, 29.2, -1.67, -21.52, -25.29, 0.37, -0.6, 0.48, 0.53, -8.48,   // 残り 30〜34 マス
-    11.95, 36.39, 18.01, 3.81, 9.18, 16.29, 29.47, -4.4, -21.51, -26.51, 0.67, -0.42, 0.04, 1.51, -7.59,   // 残り 35〜39 マス
-    7.6, 36.06, 18.03, 4.88, 7.33, 15.4, 29.75, -9.25, -21.62, -27.42, 0.94, -3.79, 0.58, 2.2, -7.92,   // 残り 40〜44 マス
-    7.4, 35.99, 18.05, 4.7, 5.55, 12.46, 29.55, -12.38, -21.66, -27.61, 1.21, -5.38, 0.95, 2.3, -6.64,   // 残り 45〜49 マス
-    8.11, 35.91, 18.03, 3.08, 4.36, 10.66, 29.29, -13.21, -21.81, -26.94, 1.69, -3.88, 3.03, 1.79, -2.63,   // 残り 50〜54 マス
-    1.67, 35.3, 18, 1.39, 5.03, 10.88, 29.52, -13.49, -21.96, -25.45, 2.9, -2.91, 5.76, 0.75, -0.21,   // 残り 55〜60 マス
+    29.25, 40.8, -5.9, -16.16, 13.82, 5.54, 33.47, -7.33, -29.17, -20.75, -0.22, 6.43, 11.3, 1.88, -2.53,   // 残り 0〜4 マス
+    23.6, 48.31, -13.8, -11.11, 13.56, 7.31, 41.58, -7.02, -29.97, -27.22, -0.23, 5.07, 3.52, 6.73, -9.36,   // 残り 5〜9 マス
+    16.6, 72.03, -21.63, -7.01, 13.13, 9.33, 50.12, -5.92, -39.52, -33.08, -0.21, 3.44, 0.41, 13.77, -13.96,   // 残り 10〜14 マス
+    9.52, 122.07, -34.47, -2.33, 12.07, 10.53, 57.44, -4.94, -48.47, -38.94, -0.13, 1.9, 0.77, 17.17, -16.63,   // 残り 15〜19 マス
+    5.9, 148.87, -52.69, 0.5, 11.87, 11.62, 63.58, 1.1, -60.64, -43.02, -0.02, 0.87, -1.19, 19.27, -23.08,   // 残り 20〜24 マス
+    2.38, 160.77, -79.41, 2.74, 12.88, 12.98, 60.77, 6.58, -55.71, -49.86, 0.16, 0.15, -0.19, 29, -22.75,   // 残り 25〜29 マス
+    -1.35, 231.99, -75.83, 3.26, 13.39, 15.54, 66.76, 5.95, -46.3, -57.68, 0.38, -0.45, -2.4, 36.87, -29.07,   // 残り 30〜34 マス
+    -4.33, 290.04, -89.04, 3.27, 13.16, 19.38, 65.43, 11.47, -58.3, -82.39, 0.52, -0.86, 3.19, 25.53, -28.16,   // 残り 35〜39 マス
+    -3.39, 271.45, -204.03, 3.33, 13.32, 23.71, 57.86, -8.41, -34.84, -104.02, 0.59, -1.69, -1.54, 0.67, -25.81,   // 残り 40〜44 マス
+    -0.35, 146.13, -42.29, 3.74, 13.07, 32.45, 59.64, -27.55, -82.03, -126.06, 0.66, -0.27, -6.72, 3.87, -21.09,   // 残り 45〜49 マス
+    1.61, 108.5, 127.44, 4.64, 12.37, 33.93, 37.29, -40.8, -11.12, -130.62, 0.62, 0.48, 0.45, 6.72, -19.18,   // 残り 50〜54 マス
+    -1.45, 141.55, 75.6, 5.79, 4.43, 46.46, 22.52, -59.22, -96.44, -139.81, 0.65, -5.92, -1.65, 0.88, -23.4,   // 残り 55〜60 マス
   ]);
   const F = new Float64Array(NF);
   function features(pL, pH, oL, oH) {
@@ -276,12 +276,118 @@ function createReversiEngine() {
     F[14] = 1;
     return e;
   }
+  /* ---------- パターン評価 ---------- */
+  /*
+   * 盤面の決まった場所（辺・隅・行・斜め）の石の並びごとに点数表を持ち、その合計を評価に加えます。
+   * 点数表は自己対戦の棋譜から学習したもので、weights.js から読み込みます（読み込むまでは上の特徴量だけで評価）。
+   * 回転・反転して重なる場所は同じ点数表を共有します（全 46 か所）。
+   */
+  const PATTERN_DEFS = [
+    [0, 1, 2, 3, 4, 5, 6, 7, 9, 14],          // 辺 + X マス 2つ
+    [0, 1, 2, 8, 9, 10, 16, 17, 18],          // 隅の 3×3
+    [0, 1, 2, 3, 4, 8, 9, 10, 11, 12],        // 隅の 2×5
+    [8, 9, 10, 11, 12, 13, 14, 15],           // 2 行目
+    [16, 17, 18, 19, 20, 21, 22, 23],         // 3 行目
+    [24, 25, 26, 27, 28, 29, 30, 31],         // 4 行目
+    [0, 9, 18, 27, 36, 45, 54, 63],           // 対角線（8マス）
+    [1, 10, 19, 28, 37, 46, 55],              // 斜め 7マス
+    [2, 11, 20, 29, 38, 47],                  // 斜め 6マス
+    [3, 12, 21, 30, 39],                      // 斜め 5マス
+    [4, 13, 22, 31]                           // 斜め 4マス
+  ];
+  const D4 = [(r, c) => [r, c], (r, c) => [r, 7 - c], (r, c) => [7 - r, c], (r, c) => [7 - r, 7 - c],
+    (r, c) => [c, r], (r, c) => [c, 7 - r], (r, c) => [7 - c, r], (r, c) => [7 - c, 7 - r]];
+  const PT = PATTERN_DEFS.map(def => ({ len: def.length, size: 3 ** def.length, canon: null, nCanon: 0, cpos: null }));
+  const PT_OFF = [];
+  let PT_TOTAL = 0;
+  for (const t of PT) { PT_OFF.push(PT_TOTAL); PT_TOTAL += t.size; }
+  const INST_TYPE = [], INST_SQ = [];
+  PATTERN_DEFS.forEach((def, ti) => {
+    const seen = new Set(), selfPerms = [];
+    for (const g of D4) {
+      const sqs = def.map(sq => { const [r, c] = g(sq >> 3, sq & 7); return r * 8 + c; });
+      const key = sqs.slice().sort((a, b) => a - b).join(',');
+      if (key === def.slice().sort((a, b) => a - b).join(',')) selfPerms.push(sqs.map(sq => def.indexOf(sq)));
+      if (seen.has(key)) continue;
+      seen.add(key); INST_TYPE.push(ti); INST_SQ.push(sqs);
+    }
+    // 自分自身と重なる対称（例: 辺の左右反転）では、同じ並びを同じ添字にまとめる
+    const t = PT[ti], pw = [];
+    for (let i = 0, p = 1; i < t.len; i++, p *= 3) pw.push(p);
+    const canon = new Int32Array(t.size), cpos = new Int32Array(t.size), digits = new Int8Array(t.len);
+    let n = 0;
+    for (let idx = 0; idx < t.size; idx++) {
+      let x = idx;
+      for (let i = 0; i < t.len; i++) { digits[i] = x % 3; x = (x - digits[i]) / 3; }
+      let best = idx;
+      for (const perm of selfPerms) {
+        let v = 0;
+        for (let i = 0; i < t.len; i++) v += pw[i] * digits[perm[i]];
+        if (v < best) best = v;
+      }
+      canon[idx] = best;
+      if (best === idx) cpos[idx] = n++;
+    }
+    for (let idx = 0; idx < t.size; idx++) cpos[idx] = cpos[canon[idx]];
+    t.canon = canon; t.cpos = cpos; t.nCanon = n;
+  });
+  const NI = INST_TYPE.length;
+  const INST_OFF = Int32Array.from(INST_TYPE.map(ti => PT_OFF[ti]));
+  // マスごとに「どの場所の何桁目か」を並べておく（石のあるマスだけ足せば添字になる）
+  const SQ_START = new Int32Array(65), SQ_INST = [], SQ_POW = [];
+  for (let sq = 0; sq < 64; sq++) {
+    SQ_START[sq] = SQ_INST.length;
+    INST_SQ.forEach((sqs, i) => { const k = sqs.indexOf(sq); if (k >= 0) { SQ_INST.push(i); SQ_POW.push(3 ** k); } });
+  }
+  SQ_START[64] = SQ_INST.length;
+  const SQI = Int32Array.from(SQ_INST), SQP = Int32Array.from(SQ_POW);
+  const PIDX = new Int32Array(NI);
+  function patternIndex(pL, pH, oL, oH) {
+    PIDX.fill(0);
+    let x = pL;
+    while (x) { const b = x & -x, sq = 31 - Math.clz32(b); x ^= b; for (let j = SQ_START[sq]; j < SQ_START[sq + 1]; j++) PIDX[SQI[j]] += SQP[j]; }
+    x = pH;
+    while (x) { const b = x & -x, sq = 63 - Math.clz32(b); x ^= b; for (let j = SQ_START[sq]; j < SQ_START[sq + 1]; j++) PIDX[SQI[j]] += SQP[j]; }
+    x = oL;
+    while (x) { const b = x & -x, sq = 31 - Math.clz32(b); x ^= b; for (let j = SQ_START[sq]; j < SQ_START[sq + 1]; j++) PIDX[SQI[j]] += 2 * SQP[j]; }
+    x = oH;
+    while (x) { const b = x & -x, sq = 63 - Math.clz32(b); x ^= b; for (let j = SQ_START[sq]; j < SQ_START[sq + 1]; j++) PIDX[SQI[j]] += 2 * SQP[j]; }
+  }
+  let PW = null, PCOEF = null, PSCALE = 1;   // 読み込んだ点数表（段階ごとに全添字ぶん展開）と、併用する特徴量の重み
+  // data: 段階ごと・種類ごとに、対称でまとめた添字の順に並べた int8 の列
+  function loadPatterns(info, data) {
+    const nCanonTotal = PT.reduce((a, t) => a + t.nCanon, 0);
+    if (!info || !data || data.length !== nCanonTotal * STAGES || !info.coef || info.coef.length !== NF * STAGES) return false;
+    PW = new Int16Array(PT_TOTAL * STAGES);
+    let p = 0;
+    for (let st = 0; st < STAGES; st++) {
+      for (let ti = 0; ti < PT.length; ti++) {
+        const t = PT[ti], base = st * PT_TOTAL + PT_OFF[ti];
+        for (let idx = 0; idx < t.size; idx++) PW[base + idx] = data[p + t.cpos[idx]];
+        p += t.nCanon;
+      }
+    }
+    PCOEF = Float64Array.from(info.coef);
+    PSCALE = info.scale || 1;
+    clearTables();
+    return true;
+  }
+
   function evaluate(pL, pH, oL, oH) {
     const e = features(pL, pH, oL, oH);
     if (e < 0) return finalScore(finalDiff(pL, pH, oL, oH));
-    const base = stageOf(e) * NF;
+    const st = stageOf(e), base = st * NF;
     let score = 0;
-    for (let k = 0; k < NF; k++) score += COEF[base + k] * F[k];
+    if (PW) {
+      for (let k = 0; k < NF; k++) score += PCOEF[base + k] * F[k];
+      patternIndex(pL, pH, oL, oH);
+      const pb = st * PT_TOTAL;
+      let ps = 0;
+      for (let i = 0; i < NI; i++) ps += PW[pb + INST_OFF[i] + PIDX[i]];
+      score += ps * PSCALE;
+    } else {
+      for (let k = 0; k < NF; k++) score += COEF[base + k] * F[k];
+    }
     score = Math.round(score);
     return score > 9000 ? 9000 : score < -9000 ? -9000 : score;
   }
@@ -668,14 +774,26 @@ function createReversiEngine() {
     return e < 0 ? null : { stage: stageOf(e), empties: e, f: Array.from(F) };
   }
   function setCoef(arr) { COEF.set(arr); clearTables(); }
+  // 学習ツール用: ビットボードから、段階・特徴量・パターンの添字（対称でまとめた位置）を求める
+  const TIDX = new Int32Array(NI);
+  function trainView(pL, pH, oL, oH) {
+    const e = features(pL, pH, oL, oH);
+    if (e < 0) return -1;
+    patternIndex(pL, pH, oL, oH);
+    for (let i = 0; i < NI; i++) { const t = PT[INST_TYPE[i]]; TIDX[i] = t.cpos[PIDX[i]]; }
+    return e;
+  }
+  const patternInfo = { NI, types: PT.map(t => ({ len: t.len, nCanon: t.nCanon })), instType: INST_TYPE.slice() };
 
-  return { think, staticEval, featureVector, setCoef, NF, STAGES };
+  return { think, staticEval, featureVector, setCoef, loadPatterns, trainView, patternInfo, F, TIDX, NF, STAGES, stageOf };
 }
 
 function reversiWorkerMain(scope) {
   const engine = createReversiEngine();
   scope.onmessage = function (e) {
     const req = e.data;
+    // パターン評価の点数表を受け取る（返事はしない）
+    if (req && req.type === 'patterns') { engine.loadPatterns(req.info, req.data); return; }
     let res;
     try { res = engine.think(req) || { move: -1 }; }
     catch (err) { res = { error: String((err && err.message) || err), move: -1 }; }

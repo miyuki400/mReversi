@@ -25,7 +25,18 @@ function terminal(b){return !legal(b,BLACK).length&&!legal(b,WHITE).length}
 const engineLocal=window.ReversiEngine.create();
 // 画面表示用の静的評価（候補手の数値・形勢グラフ）
 function evaluate(b,side){return engineLocal.staticEval(b,side,weights)}
-function makeWorker(){try{const url=URL.createObjectURL(new Blob([window.ReversiEngine.workerSource],{type:'text/javascript'}));return new Worker(url)}catch(e){return null}}
+function makeWorker(){try{const url=URL.createObjectURL(new Blob([window.ReversiEngine.workerSource],{type:'text/javascript'})),w=new Worker(url);if(patternPayload)w.postMessage(patternPayload);return w}catch(e){return null}}
+// パターン評価の点数表（weights.js）を展開して、画面側のエンジンと Worker に渡す。読み込めない環境では従来の評価のまま
+let patternPayload=null;
+async function loadPatterns(){const P=window.REVERSI_PATTERN;if(!P||typeof DecompressionStream==='undefined')return;
+  try{const bin=Uint8Array.from(atob(P.data),c=>c.charCodeAt(0));
+    const buf=await new Response(new Blob([bin]).stream().pipeThrough(new DecompressionStream('gzip'))).arrayBuffer();
+    const info={coef:P.coef,scale:P.scale},data=new Int8Array(buf);
+    if(!engineLocal.loadPatterns(info,data))return;
+    patternPayload={type:'patterns',info,data};document.documentElement.dataset.eval='pattern';
+    for(const ch of [cpuCh,coachCh])if(ch.worker)ch.worker.postMessage(patternPayload);
+    if(gameStarted&&!thinking){coachKey='';render()}
+  }catch(e){console.warn('パターン評価を読み込めませんでした',e)}}
 function createChannel(){return{worker:makeWorker(),pending:null,seq:0}}
 // 思考は Web Worker で行うので、考えている間も画面は固まらない。Worker が使えない環境では画面側で計算する
 function runEngine(ch,req,cb){
@@ -39,6 +50,7 @@ function runEngine(ch,req,cb){
 }
 function cancelEngine(ch){if(ch.pending!=null){ch.pending=null;if(ch.worker){ch.worker.terminate();ch.worker=makeWorker()}}}
 const cpuCh=createChannel(),coachCh=createChannel();
+loadPatterns();
 function formatNodes(n){return n>=1e8?(n/1e8).toFixed(1)+'億':n>=1e4?Math.round(n/1e4).toLocaleString()+'万':String(n)}
 function formatSec(ms){return (ms/1000).toFixed(2)+'秒'}
 function snapshots(){history.push({board:board.slice(),turn,moveHistory:moveHistory.slice(),evalHistory:evalHistory.slice(),finished});$('undoBtn').disabled=false}
@@ -149,7 +161,7 @@ function renderCpuReport(){const card=$('cpuReport'),body=$('cpuReportBody');
   <ul class="report-list">
     <li><b>深く読む</b> 1手1.5秒の持ち時間の中で、浅い読みから少しずつ深くしていきます（反復深化）。盤面を64ビットの「ビットボード」で持ち、合法手をビット演算でまとめて求めるので、1秒あたり100万局面以上を読めます。一度読んだ局面を覚える「置換表」と、有望な手から先に読む工夫で、中盤で10〜13手先まで読みます。</li>
     <li><b>隅と辺を正しく評価</b> 辺に並ぶ石の形6561通りをあらかじめ調べておき、隅と確定石を高く、隅が空いたままのC打ち・X打ちを大きく減点します。</li>
-    <li><b>自己対戦で鍛えた評価</b> 着手可能数・辺・隅などの15項目の重みを、自己対戦1万6千局の結果から序盤〜終盤の12段階ごとに調整しています。</li>
+    <li><b>パターンで形を覚えた評価</b> 辺・隅・行・斜めなど盤面46か所の石の並びごとに点数表を持ち、着手可能数などと合わせて局面を評価します。点数表は、何万局もの自己対戦の結果から序盤〜終盤の12段階ごとに学習しました。</li>
     <li><b>相手の選択肢を奪う</b> 自分の打てる場所を増やし、相手の打てる場所を減らす手を重視します。相手をパスに追い込む手は特に高く評価します。</li>
     <li><b>終盤は完全読み</b> 残り約20マスからは最大3秒まで長考し、勝ち負けを、さらに石差まで最後の一手まで読み切ります。空きマスが奇数の区画から打つ「偶数理論」の順で読み、勝ちを読み切ったら、その勝ちを逃さない手を選びます。</li>
     <li><b>定石は検証してから</b> 回転・反転した同じ形でも定石を認識し、探索で損がないことを確かめてから使います。</li>
