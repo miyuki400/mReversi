@@ -36,3 +36,17 @@
 .report-list b{color:#2f4d3f;margin-right:6px}
 .proof-banner{background:#fbf1e3;color:#8b4b21}
 @media(max-width:650px){.report-card{grid-column:1/-1}.report-stats{grid-template-columns:1fr}.report-stats div:last-child:nth-child(odd){grid-column:auto}}
+
+/* --- パス表示（盤面オーバーレイ） --- */
+.pass-overlay{position:absolute;inset:0;z-index:8;display:grid;place-items:center;background:rgba(14,46,38,.42);backdrop-filter:blur(1.5px);pointer-events:none;animation:passFade .22s var(--ease)}
+.pass-card{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:58%;padding:20px 26px 16px;border-radius:var(--r-lg);background:#fffdf4;box-shadow:0 10px 34px rgba(8,30,24,.35);text-align:center;animation:passPop .32s var(--ease);overflow:hidden;position:relative}
+.pass-card .stone{width:30px;height:30px}
+.pass-card strong{font:700 40px/1 'DM Sans','Noto Sans JP',sans-serif;letter-spacing:.16em;color:var(--green);padding-left:.16em}
+.pass-card small{font-size:13px;color:#5f6f66}
+.pass-progress{position:absolute;left:0;bottom:0;height:4px;width:100%;background:#d68b4e;transform-origin:left;animation:passBar 2s linear forwards}
+.pass-button{border:1px solid #e3b58b;background:#fff4e8;color:#8b4b21;border-radius:var(--r-md);padding:6px 12px;font:600 12px 'DM Sans','Noto Sans JP',sans-serif;cursor:pointer;white-space:nowrap}
+.pass-button:hover{background:#ffe9d2}
+@keyframes passFade{from{opacity:0}to{opacity:1}}
+@keyframes passPop{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes passBar{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+@media(max-width:650px){.pass-card{padding:16px 18px 13px}.pass-card strong{font-size:32px}.pass-card small{font-size:12px}}
