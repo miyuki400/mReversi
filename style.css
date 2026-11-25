@@ -50,3 +50,21 @@
 @keyframes passPop{from{transform:scale(.85);opacity:0}to{transform:scale(1);opacity:1}}
 @keyframes passBar{from{transform:scaleX(1)}to{transform:scaleX(0)}}
 @media(max-width:650px){.pass-card{padding:16px 18px 13px}.pass-card strong{font-size:32px}.pass-card small{font-size:12px}}
+
+/* --- 対局結果（終局時に盤面へ2秒表示。パス表示と同じカード） --- */
+.result-card strong{font-size:30px;letter-spacing:.06em;padding-left:.06em}
+.result-card.loss strong{color:#9a5433}
+.result-card.draw strong{color:#4d5f56}
+.result-card .result-kicker{font:500 11px 'DM Mono','Noto Sans JP',monospace;letter-spacing:.14em;color:#7a8780}
+.result-score{display:flex;align-items:center;gap:8px;margin:2px 0 1px}
+.result-score .stone{width:22px;height:22px}
+.result-score b{font:600 22px/1 'DM Sans','Noto Sans JP',sans-serif;color:var(--ink);font-variant-numeric:tabular-nums}
+.result-score i{font-style:normal;color:#9aa49e}
+@media(max-width:650px){.result-card strong{font-size:24px}.result-score b{font-size:19px}.result-score .stone{width:19px;height:19px}}
+
+/* --- 長考中（最強モードの終盤。パス表示と同じカード） --- */
+.think-card strong{letter-spacing:.12em;padding-left:.12em}
+.think-card .stone{animation:thinkPulse 1.4s ease-in-out infinite}
+.think-progress{position:absolute;left:0;bottom:0;height:4px;width:100%;background:#6d9b71;transform-origin:left;transform:scaleX(0);animation:thinkBar linear forwards}
+@keyframes thinkBar{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@keyframes thinkPulse{0%,100%{transform:scale(1)}50%{transform:scale(.86)}}
